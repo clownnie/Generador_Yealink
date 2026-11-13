@@ -7,7 +7,13 @@ def limpiar_mac(mac_sucia):
     # Remueve dos puntos, guiones, espacios y lo pasa a minúsculas
     return re.sub(r"[\s:-]", "", mac_sucia).lower()
 
-def generar_config_yealink(sv_ip, mac, extension, secret, pb_url, pb_name, firmware_url):
+def generar_config_yealink(sv_ip, mac, extension, secret, pb_url, pb_name, firmware_url, sv_ntp, ltime_zone, a_pass):
+# Definimos el nombre de la zona horaria automáticamente según el número ingresado
+    if ltime_zone == "-4":
+        ltime_name = "Chile(Santiago)"
+    elif ltime_zone == "-3":
+        ltime_name = "Argentina(Buenos Aires)"
+
     # Plantilla de configuración adaptada para teléfonos Yealink (.cfg)
     plantilla = f"""#!version:1.0.0.1
 
@@ -42,7 +48,7 @@ account.1.sip_server.1.address = {sv_ip}
 # SEGURIDAD Y ACCESO DE ADMINISTRADOR
 # ---------------------------------------------------------------------
 # Define la contraseña de acceso para el usuario administrador del teléfono
-security.user_password = admin:ELIGE AQUI TU CONTRASEÑA
+security.user_password = admin:{a_pass}
 
 # ---------------------------------------------------------------------
 # CONFIGURACIÓN REGIONAL Y HORARIA
@@ -57,23 +63,23 @@ lang.wui = Spanish
 local_time.date_format = 3
 
 # Servidor NTP primario para sincronización horaria
-local_time.ntp_server1 = ntp.shoa.cl
+local_time.ntp_server1 = {sv_ntp}
 
 # Servidor NTP secundario (deshabilitado/vacío)
 local_time.ntp_server2 = %EMPTY%
 
 # Zona horaria, -4 para "Chile" en horario de invierno y -3 para horario de verano con "Argentina".
-local_time.time_zone = -3
+local_time.time_zone = {ltime_zone}
 
-# Identificador o nombre de la zona horaria asignada ("Chile(Santiago)" o "Argentina(Buenos Aires)")
-local_time.time_zone_name = Argentina(Buenos Aires)
+# Nombre de la zona horaria asignada, se asigna un nombre u otro dependiendo del valor de ltime_zone, que es entre -4 y -3... Holis.
+local_time.time_zone_name = {ltime_name}
 
 # ---------------------------------------------------------------------
-# APROVISIONAMIENTO AUTOMÁTICO
+# APROVISIONAMIENTO AUTOMÁTICO POR FTP
 # ---------------------------------------------------------------------
 # URL del servidor de autoprovisionamiento (TFTP/HTTP/HTTPS/FTP)
-# No lo necesita al parecer, ya que se lo entrega el option 66 del DHCP. Quizás con FTP sea necesario agregarlo.
-# static.auto_provision.server.url = ftp://{sv_ip}/provisioning/Agenda.xml
+# No lo necesita al utilizar HTTP, ya que se lo entrega el option 66 del DHCP. Con FTP es necesario agregarlo.
+# static.auto_provision.server.url = ftp://{sv_ip}/provisioning/
 
 # Nombre de usuario si el servidor requiere autenticación FTP/HTTP
 static.auto_provision.server.username = 
@@ -132,11 +138,14 @@ def seleccionar_carpeta(entry_carpeta):
         entry_carpeta.delete(0, tk.END)
         entry_carpeta.insert(0, carpeta_elegida)
 
-def procesar_datos(entry_sv_ip, entry_pb_url, entry_pb_name, entry_firmware_url, entry_carpeta, text_datos):
+def procesar_datos(entry_sv_ip, entry_pb_url, entry_pb_name, entry_firmware_url, entry_sv_ntp, entry_ltime_zone, entry_a_pass, entry_carpeta, text_datos):
     sv_ip = entry_sv_ip.get().strip()
     pb_url = entry_pb_url.get().strip()
     pb_name = entry_pb_name.get().strip()
     firmware_default = entry_firmware_url.get().strip()
+    ltime_zone = entry_ltime_zone.get().strip()
+    a_pass = entry_a_pass.get().strip()
+    sv_ntp = entry_sv_ntp.get().strip()
     
     # Obtener la carpeta elegida por el usuario, o usar la por defecto si está vacía
     carpeta_personalizada = entry_carpeta.get().strip()
@@ -190,7 +199,7 @@ def procesar_datos(entry_sv_ip, entry_pb_url, entry_pb_name, entry_firmware_url,
             else:
                 firmware_url = firmware_default
 
-            contenido_cfg = generar_config_yealink(sv_ip, mac_limpia, ext, secret, pb_url, pb_name, firmware_url)
+            contenido_cfg = generar_config_yealink(sv_ip, mac_limpia, ext, secret, pb_url, pb_name, firmware_url, sv_ntp, ltime_zone, a_pass)
 
             # Los teléfonos Yealink leen archivos .cfg nombrados estrictamente con su MAC (sin prefijos)
             nombre_archivo = f"{mac_limpia}.cfg"
@@ -233,15 +242,15 @@ if __name__ == "__main__":
     frame_params = tk.LabelFrame(root, text=" Parámetros Generales (Por defecto) ", font=("Arial", 9, "bold"), padx=10, pady=8)
     frame_params.pack(padx=15, pady=5, fill="x")
 
-    tk.Label(frame_params, text="IP Servidor SIP (sv_ip):", anchor="w").grid(row=0, column=0, sticky="w", pady=3)
+    tk.Label(frame_params, text="IP Servidor SIP:", anchor="w").grid(row=0, column=0, sticky="w", pady=3)
     entry_sv_ip = tk.Entry(frame_params, width=45)
     entry_sv_ip.grid(row=0, column=1, pady=3, sticky="we", columnspan=2)
 
-    tk.Label(frame_params, text="URL Agenda (pb_url):", anchor="w").grid(row=1, column=0, sticky="w", pady=3)
+    tk.Label(frame_params, text="URL Agenda:", anchor="w").grid(row=1, column=0, sticky="w", pady=3)
     entry_pb_url = tk.Entry(frame_params, width=45)
     entry_pb_url.grid(row=1, column=1, pady=3, sticky="we", columnspan=2)
 
-    tk.Label(frame_params, text="Nombre Agenda (pb_name):", anchor="w").grid(row=2, column=0, sticky="w", pady=3)
+    tk.Label(frame_params, text="Nombre Agenda:", anchor="w").grid(row=2, column=0, sticky="w", pady=3)
     entry_pb_name = tk.Entry(frame_params, width=45)
     entry_pb_name.grid(row=2, column=1, pady=3, sticky="we", columnspan=2)
 
@@ -249,11 +258,23 @@ if __name__ == "__main__":
     entry_firmware_url = tk.Entry(frame_params, width=45)
     entry_firmware_url.grid(row=3, column=1, pady=3, sticky="we", columnspan=2)
 
+    tk.Label(frame_params, text="Servidor NTP:", anchor="w").grid(row=4, column=0, sticky="w", pady=3)
+    entry_sv_ntp = tk.Entry(frame_params, width=45)
+    entry_sv_ntp.grid(row=4, column=1, pady=3, sticky="we", columnspan=2)
+
+    tk.Label(frame_params, text="Zona horaria (-4 Invierno o -3 Verano):", anchor="w").grid(row=5, column=0, sticky="w", pady=3)
+    entry_ltime_zone = tk.Entry(frame_params, width=45)
+    entry_ltime_zone.grid(row=5, column=1, pady=3, sticky="we", columnspan=2)
+
+    tk.Label(frame_params, text="Contraseña de user admin:", anchor="w").grid(row=6, column=0, sticky="w", pady=3)
+    entry_a_pass = tk.Entry(frame_params, width=45, show="*")
+    entry_a_pass.grid(row=6, column=1, pady=3, sticky="we", columnspan=2)
+
     # Selector de carpeta de exportación
-    tk.Label(frame_params, text="Carpeta de Exportación:", anchor="w").grid(row=4, column=0, sticky="w", pady=3)
+    tk.Label(frame_params, text="Carpeta de Exportación:", anchor="w").grid(row=7, column=0, sticky="w", pady=3)
     entry_carpeta = tk.Entry(frame_params, width=33)
-    entry_carpeta.grid(row=4, column=1, pady=3, sticky="we")
-    entry_carpeta.insert(0, "") # Vacío por defecto (creará la carpeta archivos_cfg_yealink automáticamente)
+    entry_carpeta.grid(row=7, column=1, pady=3, sticky="we")
+    entry_carpeta.insert(0, "") # Vacío por defecto
 
     btn_examinar = tk.Button(
         frame_params,
@@ -262,7 +283,7 @@ if __name__ == "__main__":
         bg="#e0e0e0",
         font=("Arial", 8, "bold")
     )
-    btn_examinar.grid(row=4, column=2, padx=5, pady=3)
+    btn_examinar.grid(row=7, column=2, padx=5, pady=3)
 
     frame_params.columnconfigure(1, weight=1)
 
@@ -298,8 +319,8 @@ if __name__ == "__main__":
     btn = tk.Button(
         root,
         text="Generar Archivos .CFG Masivamente",
-        command=lambda: procesar_datos(entry_sv_ip, entry_pb_url, entry_pb_name, entry_firmware_url, entry_carpeta, text_datos),
-        bg="#007ACC",
+        command=lambda: procesar_datos(entry_sv_ip, entry_pb_url, entry_pb_name, entry_firmware_url, entry_sv_ntp, entry_ltime_zone, entry_a_pass, entry_carpeta, text_datos),
+        bg="#214778",
         fg="white",
         font=("Arial", 10, "bold"),
         padx=10,

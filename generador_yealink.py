@@ -35,7 +35,7 @@ account.1.password = {secret}
 # Nivel de retorno de voz local/efecto de tono lateral (sidetone)
 voice.side_tone = -3
 
-# Dirección IP o FQDN del servidor SIP primario (PBX)
+# Dirección IP del servidor SIP primario (PBX)
 account.1.sip_server.1.address = {sv_ip}
 
 # ---------------------------------------------------------------------
@@ -62,7 +62,7 @@ local_time.ntp_server1 = ntp.shoa.cl
 # Servidor NTP secundario (deshabilitado/vacío)
 local_time.ntp_server2 = %EMPTY%
 
-# Desfase horario UTC (Offset en horas, -4 para "Chile" horario de invierno y -3 para horario de verano con "Argentina")
+# Zona horaria, -4 para "Chile" en horario de invierno y -3 para horario de verano con "Argentina".
 local_time.time_zone = -3
 
 # Identificador o nombre de la zona horaria asignada ("Chile(Santiago)" o "Argentina(Buenos Aires)")
@@ -73,7 +73,7 @@ local_time.time_zone_name = Argentina(Buenos Aires)
 # ---------------------------------------------------------------------
 # URL del servidor de autoprovisionamiento (TFTP/HTTP/HTTPS/FTP)
 # No lo necesita al parecer, ya que se lo entrega el option 66 del DHCP. Quizás con FTP sea necesario agregarlo.
-# static.auto_provision.server.url = {sv_ip}
+# static.auto_provision.server.url = ftp://{sv_ip}/provisioning/Agenda.xml
 
 # Nombre de usuario si el servidor requiere autenticación FTP/HTTP
 static.auto_provision.server.username = 
@@ -93,10 +93,10 @@ static.firmware.url = {firmware_url}
 # ---------------------------------------------------------------------
 # AGENDA REMOTA / TELEFÓNICA (REMOTE PHONEBOOK)
 # ---------------------------------------------------------------------
-# Enlace/URL para la descarga del archivo XML de la agenda de contactos
+# Enlace de la agenda remota
 remote_phonebook.data.1.url = {pb_url}
 
-# Nombre asignado a la agenda remota dentro del menú del teléfono
+# Nombre en que aparece la agenda en el menú de usuario
 remote_phonebook.data.1.name = {pb_name}
 
 # Habilita la actualización de la agenda al presionar el menú o entrar en ella
@@ -105,16 +105,16 @@ features.remote_phonebook.enter_update_enable = 1
 # Tiempo de refresco/actualización periódica de la agenda en segundos (3600s = 1 hora)
 features.remote_phonebook.flash_time = 3600
 
-# Habilita la funcionalidad de libreta de direcciones remota
+# Habilita la funcionalidad de agenda de direcciones remota
 features.remote_phonebook.enable = 1
 
 # Nombre que se mostrará en el menú contextual de directorio
 remote_phonebook.display_name = {pb_name}
 
-# Habilita la libreta remota en la configuración de directorios integrados
+# Habilita la agenda remota en la configuración de directorios integrados
 directory_setting.remote_phone_book.enable = 1
 
-# Prioridad de búsqueda en la libreta de direcciones remota (por defecto)
+# Prioridad de búsqueda en la agenda de direcciones remota (por defecto)
 directory_setting.remote_phone_book.priority = 
 
 # Permite realizar búsquedas automáticas en la agenda remota mientras se marca un número
@@ -266,7 +266,7 @@ if __name__ == "__main__":
 
     frame_params.columnconfigure(1, weight=1)
 
-    # Marco para la tabla de Excel (Expandible con scroll horizontal/vertical)
+    # Marco para la tabla de Excel
     frame_tabla = tk.LabelFrame(root, text=" Datos de los Teléfonos ", font=("Arial", 9, "bold"), padx=10, pady=8)
     frame_tabla.pack(padx=15, pady=5, fill="both", expand=True)
 
